@@ -1,0 +1,40 @@
+<div xmlns:dcc="dcc" xmlns:px="px" xmlns:d2h="d2h" xmlns:dash="dash">
+    <h1 class="title">Example Page</h1>
+    <div>
+        <p class="slider-label">Amount</p>
+        <dcc:Slider id="amount_slider" min="10" max="1000" value="100" step="10" marks="None">
+            <dcc:Slider.tooltip>
+                <placement>bottom</placement>
+                <always_visible>False</always_visible>
+            </dcc:Slider.tooltip>
+            <dash:input id="amount_input" component_property="value"/>
+        </dcc:Slider>
+    </div>
+    <br/>
+    <div className="container">
+        <div className="row">
+            <div className="col-6">
+                <dcc:Graph id="example_scatter_plot">
+                    <dash:output component_property="figure">
+                        <px:scatter x="x" y="y" title="Scatter Example">
+                            <d2h:method method_name="get_data">
+                                <d2h:parameter input="amount_input"/>
+                            </d2h:method>
+                        </px:scatter>
+                    </dash:output>
+                </dcc:Graph>
+            </div>
+            <div className="col-6">
+                <dcc:Graph id="example_line_plot">
+                    <dash:output component_property="figure">
+                        <px:line x="x" y="y" title="Line Example">
+                            <d2h:method method_name="get_data">
+                                <d2h:parameter input="amount_input"/>
+                            </d2h:method>
+                        </px:line>
+                    </dash:output>
+                </dcc:Graph>
+            </div>
+        </div>
+    </div>
+</div>

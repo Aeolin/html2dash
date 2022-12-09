@@ -1,0 +1,6 @@
+dash
+plotly
+pandas
+dash_bootstrap_components
+requests
+jsonpath_ng

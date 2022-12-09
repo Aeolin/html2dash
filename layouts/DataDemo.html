@@ -1,0 +1,118 @@
+<div xmlns:dcc="dcc" xmlns:req="req" xmlns:pd="pd" xmlns:dash="dash" xmlns:d2h="d2h" xmlns:date="date"
+     xmlns:format="format" xmlns:px="px" xmlns:json="json" xmlns:timedelta="timedelta" xmlns:df="df" xmlns:io="io">
+    <h1 class="title">Earthquake Data</h1>
+    <div class="container">
+        <div class="row">
+            <div class="col-3">
+                <p>Date</p>
+                <dcc:DatePickerSingle id="date_range" date="date.today()" min_date_allowed="date(1970, 1, 1)"
+                                      max_date_allowed="date.today()">
+                    <dash:input id="input_date" component_property="date"/>
+                </dcc:DatePickerSingle>
+            </div>
+            <div class="col-9">
+                <p>Select how many past days should be respected</p>
+                <dcc:Slider id="days" min="1" max="30" step="1" value="3" marks="None">
+                    <dcc:Slider.tooltip>
+                        <placement>bottom</placement>
+                        <always_visible>True</always_visible>
+                    </dcc:Slider.tooltip>
+                    <dash:input id="input_days" component_property="value"/>
+                </dcc:Slider>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col-6">
+                <dcc:Graph id="scatter_quake_data">
+                    <dash:output component_property="figure">
+                        <px:scatter x="time" y="mag" title="Earthquake Data">
+                            <pd:transform>
+                                <pd:transform.data>
+                                    <pd:read_json convert_dates="True">
+                                        <json:transform json_path="$.features[*].properties">
+                                            <req:get url="https://earthquake.usgs.gov/fdsnws/event/1/query">
+                                                <d2h:parameter name="format" value="geojson"/>
+                                                <format:object name="endtime" format="%Y-%m-%d">
+                                                    <date:fromisoformat>
+                                                        <d2h:parameter input="input_date"/>
+                                                    </date:fromisoformat>
+                                                </format:object>
+                                                <format:object name="starttime" format="%Y-%m-%d">
+                                                    <date:__sub__>
+                                                        <date:fromisoformat>
+                                                            <d2h:parameter input="input_date"/>
+                                                        </date:fromisoformat>
+                                                        <timedelta:new>
+                                                            <d2h:parameter input="input_days" name="days"/>
+                                                        </timedelta:new>
+                                                    </date:__sub__>
+                                                </format:object>
+                                            </req:get>
+                                        </json:transform>
+                                    </pd:read_json>
+                                </pd:transform.data>
+                                <df:select>
+                                    <d2h:list>
+                                        <d2h:parameter value="time"/>
+                                        <d2h:parameter value="mag"/>
+                                    </d2h:list>
+                                </df:select>
+                                <df:dropna/>
+                            </pd:transform>
+                        </px:scatter>
+                    </dash:output>
+                </dcc:Graph>
+            </div>
+            <div class="col-6">
+                <dcc:Graph id="geo_spatial_quakes">
+                    <dash:output component_property="figure">
+                        <px:scatter_geo title="Earthquake Magnitudes" lat="latitude" lon="longitude">
+                            <px:scatter_geo.hover_data>
+                                <d2h:list items="latitude,longitude,mag,magType,place,depth,time"/>
+                            </px:scatter_geo.hover_data>
+                            <pd:transform>
+                                <pd:transform.data>
+                                    <pd:read_csv sep=",">
+                                        <io:StringIO>
+                                            <req:get url="https://earthquake.usgs.gov/fdsnws/event/1/query">
+                                                <d2h:parameter name="format" value="csv"/>
+                                                <format:object name="endtime" format="%Y-%m-%d">
+                                                    <date:fromisoformat>
+                                                        <d2h:parameter input="input_date"/>
+                                                    </date:fromisoformat>
+                                                </format:object>
+                                                <format:object name="starttime" format="%Y-%m-%d">
+                                                    <date:__sub__>
+                                                        <date:fromisoformat>
+                                                            <d2h:parameter input="input_date"/>
+                                                        </date:fromisoformat>
+                                                        <timedelta:new>
+                                                            <d2h:parameter input="input_days" name="days"/>
+                                                        </timedelta:new>
+                                                    </date:__sub__>
+                                                </format:object>
+                                            </req:get>
+                                        </io:StringIO>
+                                    </pd:read_csv>
+                                </pd:transform.data>
+                                <df:select>
+                                    <d2h:list items="time,latitude">
+                                        <d2h:parameter value="latitude"/>
+                                        <d2h:parameter value="longitude"/>
+                                        <d2h:parameter value="mag"/>
+                                        <d2h:parameter value="magType"/>
+                                        <d2h:parameter value="place"/>
+                                        <d2h:parameter value="depth"/>
+                                    </d2h:list>
+                                </df:select>
+                                <df:dropna/>
+                            </pd:transform>
+                        </px:scatter_geo>
+                    </dash:output>
+                </dcc:Graph>
+            </div>
+        </div>
+    </div>
+</div>
