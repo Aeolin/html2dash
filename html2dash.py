@@ -1,3 +1,4 @@
+import sys
 import uuid
 import xml.etree.ElementTree as xml
 import os
@@ -5,7 +6,6 @@ import re
 from lastitemiterator import lii
 from pathlib import Path
 from stringbuilder import StringBuilder
-from loader import config
 import hashlib
 
 BUF_SIZE = 65536
@@ -13,9 +13,10 @@ ATTRIBUTE_TRANSLATIONS = {'class': 'className'}
 TYPE_CONVERSIONS = {'str': str, 'int': int, 'float': float, 'bool': bool}
 CONFIG_TYPE_GETTER = {'str': 'get', 'int': 'getint', 'float': 'getfloat', 'bool': 'getboolean'}
 LIB_CALLS = {'date': 'date', 'time': 'time', 'timedelta': 'timedelta', 'datetime': 'datetime', 'pd': 'pd', 'px': 'px', 'req': 'req', 'json': 'jp', 'format': 'fmt', 'io': 'io'}
+config = None
 
 
-def convert(path, directory, use_pages=False, page_name=None):
+def convert(path, directory, p_config, use_pages=False, page_name=None):
     with open(path, "rb") as html:
         filehash = hashlib.md5()
         while True:
@@ -34,6 +35,7 @@ def convert(path, directory, use_pages=False, page_name=None):
             if os.path.isfile(Path(directory, file)) and file.startswith(f"html2dash_generated_{name}_"):
                 os.remove(Path(directory, file))
 
+        sys.modules[__name__].config = p_config
         html.seek(0)
         tree = xml.parse(html)
         root = tree.getroot()

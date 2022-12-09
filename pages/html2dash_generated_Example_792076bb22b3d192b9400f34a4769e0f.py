@@ -6,8 +6,9 @@ from dash.dependencies import Input, Output
 from loader import model, config
 import web_requests as req
 import json_path as jp
-from datetime import date, timedelta
+from datetime import date, timedelta, time, datetime
 import formatter as fmt
+import io
 
 dash.register_page(__name__, path='/example')
 
@@ -40,6 +41,8 @@ layout = html.Div([
                 className="col-6")],
             className="row")],
         className="container")])
+
+
 
 
 
