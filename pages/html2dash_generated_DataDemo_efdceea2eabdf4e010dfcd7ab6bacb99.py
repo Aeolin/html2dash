@@ -54,13 +54,13 @@ layout = html.Div([
         className="container")])
 
 
-def transform_generated_1bdfef1632c44920bf404fb8630f9962(df):
+def transform_generated_713b4211cdcb4690b4adb124ed668ef9(df):
     df = df[["time", "mag"]]
     df = df.dropna()
     return df
 
-def transform_generated_bad9706967d147a6a9271e4936ec43d6(df):
-    df = df[["time", "latitude", "latitude", "longitude", "mag", "magType", "place", "depth"]]
+def transform_generated_621c5ee6d4b042ee8c7bd3721d26ea8f(df):
+    df = df[["time", "latitude", "longitude", "mag", "magType", "place", "depth"]]
     df = df.dropna()
     return df
 
@@ -72,7 +72,7 @@ def transform_generated_bad9706967d147a6a9271e4936ec43d6(df):
     Input(component_id="days", component_property="value"))
 def update(input_date, input_days):
     __output_scatter_quake_data_figure = px.scatter(
-            transform_generated_1bdfef1632c44920bf404fb8630f9962(
+            transform_generated_713b4211cdcb4690b4adb124ed668ef9(
                 pd.read_json(
                     jp.transform(
                         req.get(format="geojson", 
@@ -91,7 +91,7 @@ def update(input_date, input_days):
                 convert_dates=True)), 
         x="time", y="mag", title="Earthquake Data")
     __output_geo_spatial_quakes_figure = px.scatter_geo(
-            transform_generated_bad9706967d147a6a9271e4936ec43d6(
+            transform_generated_621c5ee6d4b042ee8c7bd3721d26ea8f(
                 pd.read_csv(
                     io.StringIO(
                         req.get(format="csv", 
