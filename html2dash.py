@@ -14,6 +14,7 @@ TYPE_CONVERSIONS = {'str': str, 'int': int, 'float': float, 'bool': bool}
 CONFIG_TYPE_GETTER = {'str': 'get', 'int': 'getint', 'float': 'getfloat', 'bool': 'getboolean'}
 LIB_CALLS = {'date': 'date', 'time': 'time', 'timedelta': 'timedelta', 'datetime': 'datetime', 'pd': 'pd', 'px': 'px', 'req': 'req', 'json': 'jp', 'format': 'fmt', 'io': 'io'}
 config = None
+file_name = None
 
 
 def convert(path, directory, p_config, use_pages=False, page_name=None):
@@ -26,7 +27,7 @@ def convert(path, directory, p_config, use_pages=False, page_name=None):
             filehash.update(data)
 
         hash = filehash.hexdigest()
-        name = Path(path).stem
+        name = Path(path).stem.replace(" ", "_")
         out_name = f"./{directory}/html2dash_generated_{name}_{hash}.py"
         if os.path.exists(out_name):
             return Path(out_name).stem
@@ -36,9 +37,11 @@ def convert(path, directory, p_config, use_pages=False, page_name=None):
                 os.remove(Path(directory, file))
 
         sys.modules[__name__].config = p_config
+        sys.modules[__name__].file_name = name.lower()
         html.seek(0)
         tree = xml.parse(html)
         root = tree.getroot()
+        reformat_ids(root)
         layout_builder = StringBuilder()
         generate_layout_code(root, layout_builder)
         transform_builder = StringBuilder()
@@ -51,6 +54,14 @@ def convert(path, directory, p_config, use_pages=False, page_name=None):
         with open(out_name, "w", encoding="utf-8") as output:
             output.write(template)
             return Path(out_name).stem
+
+
+def reformat_ids(node):
+    for child in node:
+        id = child.get("id")
+        if id is not None:
+            child.set("id", f"{file_name}_{id}")
+        reformat_ids(child)
 
 
 def format_value(value):
@@ -250,7 +261,7 @@ def generate_parameter_list(parameters, builder, trailing_comma=False, suppress_
 
 
 def generate_parameter(parameter, builder):
-    value = format_value(parameter.get("value") or parameter.text) or parameter.get("input")
+    value = format_value(parameter.get("value") or parameter.text) or f"{file_name}_{parameter.get('input')}"
     name = parameter.get("name")
     if name is not None:
         builder.append(f"{name}=")
@@ -382,13 +393,18 @@ def generate_layout_code(node, builder):
         builder.append_line(",")
 
     for last, child in lii(nested_attributes):
+        complex = bool(child.get("complex") or False)
         ctag = child.tag.split(".")[-1]
-        builder.append(f"{ctag}={{")
-        for last_item, item in lii(child):
-            builder.append(f'"{item.tag}": {format_value(item.text.strip())}{"" if last_item else ","}')
-        builder.append("}")
-        if not last:
-            builder.append_line(", ")
+        if complex:
+            builder.append(f"{ctag}=")
+            generate_function_call(child[0], builder, False)
+        else:
+            builder.append(f"{ctag}={{")
+            for last_item, item in lii(child):
+                builder.append(f'"{item.tag}": {format_value(item.text.strip())}{"" if last_item else ","}')
+            builder.append("}")
+            if not last:
+                builder.append_line(", ")
     builder.pop_indent()
 
     builder.append(")")
