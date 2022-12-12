@@ -47,7 +47,7 @@ def convert(path, directory, p_config, use_pages=False, page_name=None):
         transform_builder = StringBuilder()
         generate_transforms(root, transform_builder)
         update_builder = StringBuilder()
-        generate_update_code(root, update_builder, use_pages)
+        generate_update_code_new(root, update_builder, use_pages)
         with open(f"./templates/{'paged_' if use_pages else ''}template.pyt", "r") as template:
             template = template.read().format(page=(page_name or "/" + re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()), methods=str(transform_builder), layout=str(layout_builder), update=str(update_builder))
 
@@ -61,6 +61,12 @@ def reformat_ids(node):
         id = child.get("id")
         if id is not None:
             child.set("id", f"{file_name}_{id}")
+
+        if child.tag == "{d2h}parameter":
+            input = child.get("input")
+            if input is not None:
+                child.set("input", f"{file_name}_{input}")
+
         reformat_ids(child)
 
 
@@ -261,7 +267,7 @@ def generate_parameter_list(parameters, builder, trailing_comma=False, suppress_
 
 
 def generate_parameter(parameter, builder):
-    value = format_value(parameter.get("value") or parameter.text) or f"{file_name}_{parameter.get('input')}"
+    value = format_value(parameter.get("value") or parameter.text) or parameter.get('input')
     name = parameter.get("name")
     if name is not None:
         builder.append(f"{name}=")
@@ -278,6 +284,78 @@ def generate_config(node, builder):
         builder.append(f", fallback={default}")
 
     builder.append(")")
+
+
+def generate_update_code_new(node, builder, use_pages):
+    parent_map = {c: p for p in node.iter() for c in p}
+    node_map = {n.get("id"): n for n in node.iter() if n.get("id") is not None}
+    outputs = node.findall(".//dash:output", namespaces={"dash": "dash"})
+    input_map = {n.get('id'): n for n in node.findall(".//dash:input", namespaces={"dash": "dash"})}
+    output_groups = {}
+    for output in outputs:
+        parent = parent_map[output].get("id")
+        if parent not in output_groups:
+            output_groups[parent] = []
+
+        output_groups[parent].append(output)
+
+    if len(outputs) == 0 and len(input_map) == 0:
+        return;
+
+    for last_output, parent_id, outputs_in_parent in lii(output_groups.items()):
+        inputs = node_map[parent_id].findall(".//d2h:parameter[@input]", namespaces={"d2h": "d2h"})
+        builder.append_line(f"@{'' if use_pages else 'app.'}callback(")
+        builder.push_indent()
+        for last, output in lii(outputs_in_parent):
+            builder.append(f'Output(component_id="{parent_id}", component_property="{output.get("component_property")}")')
+            if not last or len(inputs) > 0:
+                builder.append_line(",")
+
+        for last, input in lii(inputs):
+            input_node = input_map[input.get("input")]
+            input_parent_id = parent_map[input_node].get("id")
+            builder.append(f'Input(component_id="{input_parent_id}", component_property="{input_node.get("component_property")}")')
+            if not last:
+                builder.append_line(",")
+
+        builder.append_line(")")
+        builder.pop_indent()
+        builder.append(f"def update_{parent_id}(")
+        for last, input in lii(inputs):
+            input_node = input_map[input.get("input")]
+            builder.append(input_node.get("id"))
+            if not last:
+                builder.append(", ")
+
+        builder.append_line("):")
+        builder.push_indent()
+
+        for output in outputs_in_parent:
+            value = output.get("value")
+            property = output.get("component_property")
+            builder.append(f"__output_{parent_id}_{property} = ")
+
+            if value is not None:
+                builder.append(format_value(value))
+            elif len(output) > 0:
+                generate_function_call(output[0], builder, True)
+            else:
+                builder.append("None")
+
+            builder.append_line()
+
+        builder.append("return ")
+        for last, output in lii(outputs_in_parent):
+            property = output.get("component_property")
+            builder.append(f"__output_{parent_id}_{property}")
+            if not last:
+                builder.append(", ")
+
+        builder.pop_indent()
+
+        if not last_output:
+            builder.append_line(builder.line_break)
+
 
 
 def generate_update_code(node, builder, use_pages):
