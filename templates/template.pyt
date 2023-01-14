@@ -3,7 +3,7 @@ import plotly.express as px
 import dash
 from dash import dcc
 from dash import html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from loader import app, model, config
 import web_requests as req
 import json_path as jp

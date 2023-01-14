@@ -3,10 +3,12 @@ import configparser
 import data
 import dash_bootstrap_components as dbc
 import os
-import html2dash
+from html2dash import Html2Dash
+import json_path
+import web_requests
 
 CONFIG = 'multipage_config.ini'
-STYLES = [dbc.themes.BOOTSTRAP, './styles/app.css']
+STYLES = [dbc.themes.LUX, './styles/app.css']
 SCRIPTS = []
 
 model = data
@@ -20,10 +22,17 @@ if config.getboolean('app', 'UsePages'):
     except FileExistsError:
         pass
 
+    html2dash = Html2Dash(config, 'pages', True)
     for file in [f'./layouts/{x}' for x in os.listdir('./layouts') if x.endswith('.html')]:
-        html2dash.convert(file, 'pages', config, True, '/' if file.endswith(config['app']['MainPage']) else None)
+        html2dash.convert(file, '/' if file.endswith(config['app']['MainPage']) else None)
 
-    app = dash.Dash(__name__, use_pages=True, external_stylesheets=STYLES, external_scripts=SCRIPTS)
+    app = dash.Dash(__name__, use_pages=True, external_stylesheets=STYLES, external_scripts=SCRIPTS, meta_tags=[
+        {
+            "name": "viewport",
+                "content": "width=device-width, initial-scale=1, maximum-scale=1",
+        }
+    ])
 else:
-    page_name = html2dash.convert(f'./layouts/{config["app"]["MainPage"]}', 'cache', config)
+    html2dash = Html2Dash(config, 'cache', False)
+    page_name = html2dash.convert(f'./layouts/{config["app"]["MainPage"]}')
     app = dash.Dash(__name__, use_pages=False, external_stylesheets=STYLES, external_scripts=SCRIPTS)

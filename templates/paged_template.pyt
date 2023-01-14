@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.express as px
 import dash
 from dash import dcc, html, callback
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from loader import model, config
 import web_requests as req
 import json_path as jp
